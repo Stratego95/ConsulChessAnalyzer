@@ -3,19 +3,20 @@ import '../index.css';
 import Board from './board.js';
 import King from '../pieces/king'
 import Queen from '../pieces/queen'
-import FallenSoldierBlock from './fallen-soldier-block.js';
-import initialiseChessBoard from '../helpers/board-initialiser.js';
+import {initialiseEmptyChessBoard, initialiseChessBoard} from '../helpers/board-initialiser.js';
 import PiecePicker from './../helpers/piecepickermodal'
 import Knight from '../pieces/knight.js';
 import Rook from '../pieces/rook.js';
 import Bishop from '../pieces/bishop.js';
 import Consul from '../pieces/consul.js';
+import ChessAnalyzeControl from './chessanalyzecontrol.js';
+import Pawn from '../pieces/pawn.js';
 
 export default class Game extends React.Component {
   constructor() {
     super();
     this.state = {
-      squares: initialiseChessBoard(),
+      squares: initialiseEmptyChessBoard(),
       whiteFallenSoldiers: [],
       blackFallenSoldiers: [],
       player: 1,
@@ -25,11 +26,18 @@ export default class Game extends React.Component {
       castleInfo: { isCastling: false },
       notation: [],
       showPiecePicker: false,
-      destSquare: -1
+      destSquare: -1,
+      setupMode: true,
+      setUpPiece: '',
+      setUpPlayer: -1
     }
   }
 
   handleClick(i) {
+    if(this.state.setupMode) {
+      this.handleSetUpMode(i)
+      return
+    }
     const srcSquare = this.state.sourceSelection;
 
     const squares = [...this.state.squares];
@@ -242,10 +250,62 @@ export default class Game extends React.Component {
       })
   }
 
+  handleSetUpMode(destSquare) {
+    const currentPlayer = this.state.setUpPlayer
+    const piece = this.state.setUpPiece
+    const squares = this.state.squares
+    if(piece === "R") squares[destSquare] = new Rook(currentPlayer,"R");
+    if(piece === "N") squares[destSquare] = new Knight(currentPlayer,"N")
+    if(piece === "B") squares[destSquare] = new Bishop(currentPlayer,"B")
+    if(piece === "C") squares[destSquare] = new Consul(currentPlayer,"C")
+    if(piece === "Q") squares[destSquare] = new Queen(currentPlayer,"Q")
+    if(piece === "K") squares[destSquare] = new King(currentPlayer,"K")
+    if(piece === "P") squares[destSquare] = new Pawn(currentPlayer,"P")
+
+      this.setState({
+        squares,
+        setUpPiece: '',
+        setUpPlayer: -1
+      })
+  
+   }
+
+  storeSelectedPiece(piece, player) {
+    this.setState({
+      setUpPiece: piece,
+      setUpPlayer: player
+    })
+  }
+
+  startPlayerChanged() {
+    let player = this.state.player === 1 ? 2 : 1;
+    let turn = this.state.turn === 'white' ? 'black' : 'white';
+
+    this.setState({
+      player,
+      turn
+    })
+  }
+
+  startGame() {
+    const newMode = this.state.setupMode === true ? false : true
+    this.setState({
+      setupMode: newMode
+    })
+  }
+
+  startPosition() {
+    let squares = this.state.squares
+    squares = initialiseChessBoard()
+    this.setState({
+      squares
+    })
+  }
+
   render() {
 
     return (
-      <div>
+      <div style={{display: "block"}}>
         <div>
         {this.state.showPiecePicker && <PiecePicker player={this.state.player} pieceChosen={(piece, player) => this.handlePieceChosen(piece, player)} /> }
         </div>
@@ -259,18 +319,11 @@ export default class Game extends React.Component {
           <div className="game-info">
             <h3>Turn</h3>
             <div id="player-turn-box" style={{ backgroundColor: this.state.turn }}>
-
             </div>
+            <div style={{margin: "10px"}}>
+          <ChessAnalyzeControl pieceSelected={(piece, player) => this.storeSelectedPiece(piece, player)} startPlayerChanged={() => this.startPlayerChanged()} startGame={() => this.startGame()} startPosition={() => this.startPosition()}/>
+        </div>
             <div className="game-status">{this.state.status}</div>
-
-            <div className="fallen-soldier-block">
-
-              {<FallenSoldierBlock
-                whiteFallenSoldiers={this.state.whiteFallenSoldiers}
-                blackFallenSoldiers={this.state.blackFallenSoldiers}
-              />
-              }
-            </div>
 
           </div>
         </div>
